@@ -753,6 +753,9 @@ prompt_and_wait() {
             case ITEM_ADVANCED:
                 show_advanced_menu();
                 break;
+			case ITEM_GLITCH:
+				show_glitch_menu();
+    			break;
             case ITEM_POWEROFF:
                 poweroff=1;
                 return;
@@ -805,7 +808,15 @@ main(int argc, char **argv) {
     printf("Starting recovery on %s", ctime(&start));
 
     ui_init();
+	ui_print("\n\n");
     ui_print(EXPAND(RECOVERY_VERSION)"\n");
+	ui_print("Recovery tweaks by Smasher816\n");
+	ui_print("\n");
+	//ui_print("Check out the GLITCH menu\n");
+	//ui_print("for logcat toggle,\n");
+	//ui_print("and kernel cleaning.\n");
+	//ui_print("\n");
+
     load_volume_table();
     process_volumes();
     LOGI("Processing arguments.\n");

@@ -109,12 +109,14 @@ static pthread_cond_t key_queue_cond = PTHREAD_COND_INITIALIZER;
 static int key_queue[256], key_queue_len = 0;
 static volatile char key_pressed[KEY_MAX + 1];
 
+#define BACKGROUND_COLOR 48,10,36 ,255 //Ubuntu terminal dark purple
+
 // Clear the screen and draw the currently selected background icon (if any).
 // Should only be called with gUpdateMutex locked.
 static void draw_background_locked(gr_surface icon)
 {
     gPagesIdentical = 0;
-    gr_color(0, 0, 0, 255);
+    gr_color(BACKGROUND_COLOR); //0, 0, 0, 255);
     gr_fill(0, 0, gr_fb_width(), gr_fb_height());
 
     if (icon) {
@@ -140,7 +142,7 @@ static void draw_progress_locked()
     int dy = (3*gr_fb_height() + iconHeight - 2*height)/4;
 
     // Erase behind the progress bar (in case this was a progress-only update)
-    gr_color(0, 0, 0, 255);
+    gr_color(BACKGROUND_COLOR);//0, 0, 0, 255);
     gr_fill(dx, dy, width, height);
 
     if (gProgressBarType == PROGRESSBAR_TYPE_NORMAL) {
@@ -168,29 +170,33 @@ static void draw_text_line(int row, const char* t) {
   }
 }
 
-#define MENU_TEXT_COLOR 255, 160, 49, 255
-#define NORMAL_TEXT_COLOR 200, 200, 200, 255
-#define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
+#define MENU_TEXT_COLOR 255,255,255, 255 //White            //255,160,49,255
+#define NORMAL_TEXT_COLOR 200,200,200, 255 //White (darker) //200,200,200,255
+#define HEADER_TEXT_COLOR 138,226,52, 255 //Green           //NORMAL_TEXT_COLOR
+#define HIGHLIGHT_TEXT_COLOR HEADER_TEXT_COLOR //Green
 
 // Redraw everything on the screen.  Does not flip pages.
 // Should only be called with gUpdateMutex locked.
 static void draw_screen_locked(void)
 {
     if (!ui_has_initialized) return;
-    draw_background_locked(gCurrentIcon);
+    //Fills screen (background). Done in draw_background_locked (REMOVED)
+	//gr_color(101,40,55,255); //0, 0, 0, 160);
+    //gr_fill(0, 0, gr_fb_width(), gr_fb_height());
+
+	//Always Draw stuff
+	draw_background_locked(gCurrentIcon);
     draw_progress_locked();
 
     if (show_text) {
-        gr_color(0, 0, 0, 160);
-        gr_fill(0, 0, gr_fb_width(), gr_fb_height());
-
         int i = 0;
         int j = 0;
         int row = 0;            // current row that we are drawing on
         if (show_menu) {
-            gr_color(MENU_TEXT_COLOR);
-            gr_fill(0, (menu_top + menu_sel - menu_show_start) * CHAR_HEIGHT,
-                    gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*CHAR_HEIGHT+1);
+            //Draws highlight around selection (REMOVED)
+			//gr_color(101,40,55,255); //MENU_TEXT_COLOR);
+            //gr_fill(0, (menu_top + menu_sel - menu_show_start) * CHAR_HEIGHT,
+            //        gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*CHAR_HEIGHT+1);
 
             gr_color(HEADER_TEXT_COLOR);
             for (i = 0; i < menu_top; ++i) {
@@ -206,7 +212,7 @@ static void draw_screen_locked(void)
             gr_color(MENU_TEXT_COLOR);
             for (i = menu_show_start + menu_top; i < (menu_show_start + menu_top + j); ++i) {
                 if (i == menu_top + menu_sel) {
-                    gr_color(255, 255, 255, 255);
+                    gr_color(HIGHLIGHT_TEXT_COLOR); //Select color (Green) //255,255,255,255
                     draw_text_line(i - menu_show_start , menu[i]);
                     gr_color(MENU_TEXT_COLOR);
                 } else {
@@ -215,6 +221,7 @@ static void draw_screen_locked(void)
                 }
                 row++;
             }
+			gr_color(HIGHLIGHT_TEXT_COLOR); //Bottom Line (GREEN)
             gr_fill(0, row*CHAR_HEIGHT+CHAR_HEIGHT/2-1,
                     gr_fb_width(), row*CHAR_HEIGHT+CHAR_HEIGHT/2+1);
         }

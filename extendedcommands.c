@@ -1043,6 +1043,90 @@ void show_advanced_menu()
     }
 }
 
+void show_glitch_menu()
+{
+    ensure_path_mounted("/system");
+    ensure_path_mounted("/data");    
+
+    static char* headers[] = {  "GLITCH Kernel - Extras Menu",
+								"",
+								NULL
+    };
+
+    static char* list[] = { "Toggle Logcat",
+                            "Remove Voltage Settings",
+							"Clean kernel files",
+    						NULL
+    };
+
+    for (;;)
+    {
+		int chosen_item = get_menu_selection(headers, list, 0, 0);
+        if (chosen_item == GO_BACK)
+            break;
+		switch (chosen_item)
+        {
+		    case 0:
+		    {
+				struct stat info;
+    			if (stat("/data/local/logger.ko", &info) != 0) {
+				    __system("su -c \"cp /system/lib/modules/logger.ko /data/local/logger.ko\"");
+				    ui_print("Logcat Enabled\n");		    
+    			}
+    			else {
+				    remove("/data/local/logger.ko");
+				    ui_print("Logcat Disabled\n");		    
+    			}
+			break;
+	    	}
+	    	case 1:
+	    	{
+				remove("/etc/init.d/S_volt_scheduler");		
+				ui_print("Voltage stats removed\n");
+				break;
+	    	}
+			case 2:
+			{
+				ui_print(" 						  ");
+				ui_print("Cleaning scripts, OC settings and old modules...");
+				remove("/system/etc/init.d/04modules");
+				remove("/system/etc/init.d/91logger");
+				remove("/system/etc/init.d/logcat_module");
+				remove("/system/etc/init.d/S97ramscript");
+				remove("/system/etc/init.d/S_volt_scheduler");
+				remove("/system/etc/init.d/S70zipalign");
+				remove("/system/etc/init.d/S90scheduler");
+				remove("/system/etc/init.d/S99finish");
+				remove("/system/etc/init.d/89system_tweak");
+				remove("/system/etc/init.d/98system_tweak");
+				remove("/system/etc/init.d/S89system_tweak");
+				remove("/system/etc/init.d/S98system_tweak");
+				remove("/system/etc/init.d/S90screenstate_scaling");
+				remove("/system/etc/init.d/90screenstate_scaling");
+				remove("/system/etc/init.d/98screenstate_scaling");
+				remove("/system/etc/init.d/S98screenstate_scaling");
+				__system("rm /system/lib/modules/*");
+				__system("rm /data/local/logger.ko");
+				ui_print("		                                  ");
+				ui_print("Cleaning cache partition...			  ");
+				format_volume("/cache"); //Can cause problems. should use erase_volume from recovery.c
+				ui_print("		                                  ");
+				ui_print("Cleaning dalvik-cache...		      	  ");
+				ensure_path_mounted("/sd-ext");
+                ensure_path_mounted("/cache");				
+				__system("rm -r /data/dalvik-cache");
+                __system("rm -r /cache/dalvik-cache");
+                __system("rm -r /sd-ext/dalvik-cache");
+				ui_print("		                                  ");
+				ui_print("Done cleaning kernel files");
+				ui_print("Note: This first boot will take longer. Dont freak out");
+			}
+        }
+    }
+    //ensure_path_unmounted("/system");
+    //ensure_path_unmounted("/data");    
+}
+
 void write_fstab_root(char *path, FILE *file)
 {
     Volume *vol = volume_for_path(path);
