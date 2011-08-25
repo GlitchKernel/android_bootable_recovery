@@ -1043,6 +1043,95 @@ void show_advanced_menu()
     }
 }
 
+void show_sleep_gov_menu()
+{
+    ensure_path_mounted("/system");
+    ensure_path_mounted("/data");    
+
+    static char* headers[] = {  "GLITCH Kernel - Sleep governor menu",
+								"",
+								NULL
+    };
+
+    static char* list[] = { "conservative",
+    			    "smartass",
+    			    "powersave",
+			    NULL
+    };
+
+    for (;;)
+    {
+	int chosen_item = get_menu_selection(headers, list, 0, 0);
+        if (chosen_item == GO_BACK)
+            break;
+
+	
+	FILE *f = fopen( "/system/etc/glitch-config/sleep_governor", "w" );
+	
+	if ( f == NULL )
+	{
+		LOGW("Unable to create sleep_governor");
+		break;
+	}
+	
+	fwrite( list[chosen_item], strlen(list[chosen_item]), 1, f );
+	
+	fclose(f);
+	
+	ui_print("Sleep Governor set to %s\n", list[chosen_item]);
+    }
+}
+
+void show_screenstate_menu()
+{
+
+    ensure_path_mounted("/system");
+    ensure_path_mounted("/data");    
+
+    static char* headers[] = {  "GLITCH Kernel - Screenstate menu",
+								"",
+								NULL
+    };
+
+    static char* list[] = { "Enable",
+    			    "Disable",
+                            "Set Sleep Governor",
+			    NULL
+    };
+
+    for (;;)
+    {
+	int chosen_item = get_menu_selection(headers, list, 0, 0);
+        if (chosen_item == GO_BACK)
+            break;
+
+	switch (chosen_item)
+        {
+	    case 0:
+	    {
+		__system("echo active > /system/etc/glitch-config/screenstate_scaling");
+		ui_print("Screenstate scaling ACTIVE\n");
+		break;
+	    }
+	    
+	    case 1:
+	    {
+	    	__system("echo inactive > /system/etc/glitch-config/screenstate_scaling");
+		ui_print("Screenstate scaling INACTIVE\n");
+	        break;
+	    }
+	    
+	    case 2:
+	    {
+	    	show_sleep_gov_menu();
+		
+		break;
+	    }	    
+        }
+    }    
+}
+
+
 void show_glitch_menu()
 {
     ensure_path_mounted("/system");
@@ -1055,7 +1144,8 @@ void show_glitch_menu()
 
     static char* list[] = { "Toggle Logcat",
                             "Remove Voltage Settings",
-							"Clean kernel files",
+			    "Clean kernel files",
+			    "Configure screenstate scaling"
     						NULL
     };
 
@@ -1120,6 +1210,14 @@ void show_glitch_menu()
 				ui_print("		                                  ");
 				ui_print("Done cleaning kernel files");
 				ui_print("Note: This first boot will take longer. Dont freak out");
+				break;
+			}
+			
+			case 3:
+			{
+			    show_screenstate_menu();
+			
+			    break;		
 			}
         }
     }
