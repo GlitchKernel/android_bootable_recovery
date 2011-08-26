@@ -1145,7 +1145,7 @@ void show_glitch_menu()
     static char* list[] = { "Toggle Logcat",
                             "Remove Voltage Settings",
 			    "Clean kernel files",
-			    "Configure screenstate scaling"
+			    "Configure screenstate scaling",
     						NULL
     };
 
