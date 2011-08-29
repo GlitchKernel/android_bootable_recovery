@@ -1143,9 +1143,11 @@ void show_glitch_menu()
     };
 
     static char* list[] = { "Toggle Logcat",
-                            "Remove Voltage Settings",
-			    "Clean kernel files",
-			    "Configure screenstate scaling",
+							"Clean kernel files",
+							"Configure screenstate scaling",
+							"Remove  Voltage Settings",
+							"Backup  Voltage Settings",
+							"Restore Voltage Settings",
     						NULL
     };
 
@@ -1169,14 +1171,9 @@ void show_glitch_menu()
     			}
 			break;
 	    	}
-	    	case 1:
-	    	{
-				remove("/etc/init.d/S_volt_scheduler");		
-				ui_print("Voltage stats removed\n");
-				break;
-	    	}
-			case 2:
+			case 1:
 			{
+				if (!confirm_selection( "Confirm kernel cleaning?", "Yes - Clean Kernel Files (must flash a kernel afterwards)")) {break;}
 				ui_print(" 						  ");
 				ui_print("Cleaning scripts, OC settings and old modules...");
 				remove("/system/etc/init.d/04modules");
@@ -1209,15 +1206,33 @@ void show_glitch_menu()
                 __system("rm -r /sd-ext/dalvik-cache");
 				ui_print("		                                  ");
 				ui_print("Done cleaning kernel files");
-				ui_print("Note: This first boot will take longer. Dont freak out");
+				ui_print("Note: You must flash a kernel now! (but now safely this time)");
+			}
+			case 2:
+			{
+				show_screenstate_menu();
 				break;
 			}
-			
 			case 3:
+	    	{
+				remove("/etc/init.d/S_volt_scheduler");		
+				ui_print("Voltage stats removed\n");
+				break;
+	    	}
+			case 4:
 			{
-			    show_screenstate_menu();
-			
-			    break;		
+				__system("mkdir /sdcard/Glitch");
+				__system("cp /etc/init.d/S_volt_scheduler /sdcard/Glitch/BACKUP_S_voltage_scheduler");
+				ui_print("Voltage stats backed up (to /sdcard/Glitch/BACKUP_S_voltage_scheduler\n");
+				break;
+			}
+			case 5:
+			{
+				if (confirm_selection( "Confirm Restore?", "Yes - Clean Restore Voltage Stats (May cause problems)"))
+				{
+					__system("cp /sdcard/Glitch/BACKUP_S_voltage_scheduler /etc/init.d/S_volt_scheduler");
+				}				
+				break;
 			}
         }
     }
