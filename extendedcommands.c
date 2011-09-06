@@ -1055,7 +1055,8 @@ void show_sleep_gov_menu()
 
     static char* list[] = { "conservative",
     			    "smartass",
-    			    "powersave",
+    			    "ondemand",
+    			    "powersave",    			    
 			    NULL
     };
 
