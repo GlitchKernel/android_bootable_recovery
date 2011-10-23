@@ -111,7 +111,8 @@ static pthread_cond_t key_queue_cond = PTHREAD_COND_INITIALIZER;
 static int key_queue[256], key_queue_len = 0;
 static volatile char key_pressed[KEY_MAX + 1];
 
-#define BACKGROUND_COLOR 48,10,36 ,255 //Ubuntu terminal dark purple
+//#define BACKGROUND_COLOR 48,10,36 ,255 //Ubuntu terminal dark purple
+#define BACKGROUND_COLOR 0,0,0 ,255 //Plain Black
 
 // Clear the screen and draw the currently selected background icon (if any).
 // Should only be called with gUpdateMutex locked.
@@ -172,10 +173,10 @@ static void draw_text_line(int row, const char* t) {
   }
 }
 
-#define MENU_TEXT_COLOR 255,255,255, 255 //White            //255,160,49,255
+#define MENU_TEXT_COLOR 240,0,0, 255 //Red            //255,160,49,255
 #define NORMAL_TEXT_COLOR 200,200,200, 255 //White (darker) //200,200,200,255
-#define HEADER_TEXT_COLOR 138,226,52, 255 //Green           //NORMAL_TEXT_COLOR
-#define HIGHLIGHT_TEXT_COLOR HEADER_TEXT_COLOR //Green
+#define HEADER_TEXT_COLOR 255,255,255, 255 //White           //NORMAL_TEXT_COLOR
+#define HIGHLIGHT_TEXT_COLOR HEADER_TEXT_COLOR //White
 
 // Redraw everything on the screen.  Does not flip pages.
 // Should only be called with gUpdateMutex locked.
