@@ -1053,6 +1053,45 @@ void show_sleep_gov_menu()
     }
 }
 
+void show_leakage_menu()
+{
+    ensure_path_mounted("/system");
+    ensure_path_mounted("/data");    
+
+    static char* headers[] = {  "GLITCH Kernel - Leakage menu",
+								"",
+								NULL
+    };
+
+    static char* list[] = { "low",
+    			    "medium",
+    			    "high",
+			    NULL
+    };
+
+    for (;;)
+    {
+	int chosen_item = get_menu_selection(headers, list, 0, 0);
+        if (chosen_item == GO_BACK)
+            break;
+
+
+	FILE *f = fopen( "/system/etc/glitch-config/leakage", "w" );
+
+	if ( f == NULL )
+	{
+		LOGW("Unable to create leakage");
+		break;
+	}
+
+	fwrite( list[chosen_item], strlen(list[chosen_item]), 1, f );
+
+	fclose(f);
+
+	ui_print("Leakage set to %s\n", list[chosen_item]);
+    }
+}
+
 void show_screenstate_menu()
 {
 
@@ -1118,6 +1157,7 @@ void show_glitch_menu()
 							"Remove  Voltage Settings",
 							"Backup  Voltage Settings",
 							"Restore Voltage Settings",
+							"Configure Leakage Settings",
     						NULL
     };
 
@@ -1205,6 +1245,12 @@ void show_glitch_menu()
 				}				
 				break;
 			}
+			
+			case 6:
+			{
+        show_leakage_menu();
+			}
+			break;
         }
     }
     //ensure_path_unmounted("/system");
