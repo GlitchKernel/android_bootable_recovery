@@ -1196,7 +1196,7 @@ void show_glitch_menu()
 		    {
 				struct stat info;
     			if (stat("/data/local/logger.ko", &info) != 0) {
-				    __system("su -c \"cp /system/lib/modules/logger.ko /data/local/logger.ko\"");
+				    __system("cp /system/lib/modules/logger.ko /data/local/logger.ko");
 				    ui_print("Logcat Enabled\n");		    
     			}
     			else {
