@@ -1051,6 +1051,7 @@ void show_sleep_gov_menu()
     static char* list[] = { "conservative",
     			    "smartass",
     			    "powersave",
+    			    "lazy",
 			    NULL
     };
 
@@ -1169,6 +1170,7 @@ void show_glitch_menu()
 {
     ensure_path_mounted("/system");
     ensure_path_mounted("/data");    
+    
 
     static char* headers[] = {  "GLITCH Kernel - Extras Menu",
 								"",
@@ -1196,7 +1198,7 @@ void show_glitch_menu()
 		    {
 				struct stat info;
     			if (stat("/data/local/logger.ko", &info) != 0) {
-				    __system("su -c \"cp /system/lib/modules/logger.ko /data/local/logger.ko\"");
+				    __system("cp /system/lib/modules/logger.ko /data/local/logger.ko");
 				    ui_print("Logcat Enabled\n");		    
     			}
     			else {
@@ -1226,6 +1228,7 @@ void show_glitch_menu()
 				remove("/system/etc/init.d/90screenstate_scaling");
 				remove("/system/etc/init.d/98screenstate_scaling");
 				remove("/system/etc/init.d/S98screenstate_scaling");
+				remove("/system/etc/init.d/S99screenstate_scaling");
 				__system("rm /system/lib/modules/*");
 				__system("rm /data/local/logger.ko");
 				ui_print("		                                  ");
@@ -1250,22 +1253,27 @@ void show_glitch_menu()
 			case 3:
 	    	{
 				remove("/etc/init.d/S_volt_scheduler");		
+				remove("/etc/init.d/S91voltctrl");
 				ui_print("Voltage stats removed\n");
 				break;
 	    	}
 			case 4:
 			{
+        ensure_path_mounted("/sdcard");
 				__system("mkdir /sdcard/Glitch");
 				__system("cp /etc/init.d/S_volt_scheduler /sdcard/Glitch/BACKUP_S_voltage_scheduler");
 				ui_print("Voltage stats backed up (to /sdcard/Glitch/BACKUP_S_voltage_scheduler\n");
+				ensure_path_unmounted("/sdcard");
 				break;
 			}
 			case 5:
 			{
 				if (confirm_selection( "Confirm Restore?", "Yes - Clean Restore Voltage Stats (May cause problems)"))
 				{
+          ensure_path_mounted("/sdcard");
 					__system("cp /sdcard/Glitch/BACKUP_S_voltage_scheduler /etc/init.d/S_volt_scheduler");
 					ui_print("Voltage stats restored\n");
+					ensure_path_unmounted("/sdcard");
 				}				
 				break;
 			}
