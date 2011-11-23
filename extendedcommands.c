@@ -1259,21 +1259,35 @@ void show_glitch_menu()
 	    	}
 			case 4:
 			{
-        ensure_path_mounted("/sdcard");
-				__system("mkdir /sdcard/Glitch");
-				__system("cp /etc/init.d/S_volt_scheduler /sdcard/Glitch/BACKUP_S_voltage_scheduler");
-				ui_print("Voltage stats backed up (to /sdcard/Glitch/BACKUP_S_voltage_scheduler\n");
-				ensure_path_unmounted("/sdcard");
+        if ( 0 == ensure_path_mounted("/sdcard") )
+        {
+          __system("mkdir /sdcard/Glitch");
+          __system("[ -f /system/etc/init.d/S_volt_scheduler ] && cp /system/etc/init.d/S_volt_schedluer /sdcard/Glitch/BACKUP_S_voltage_scheduler");
+          __system("[ -f /system/etc/init.d/S91voltctrl ] && cp /system/etc/init.d/S91voltctrl /sdcard/Glitch/BACKUP_S91voltctrl");
+          ui_print("Voltage settings backed up (to /sdcard/Glitch/\n");
+          ensure_path_unmounted("/sdcard");
+        }
+        else
+        {
+          ui_print("Unable to mount /sdcard - nothing done!");
+        }
 				break;
 			}
 			case 5:
 			{
 				if (confirm_selection( "Confirm Restore?", "Yes - Clean Restore Voltage Stats (May cause problems)"))
 				{
-          ensure_path_mounted("/sdcard");
-					__system("cp /sdcard/Glitch/BACKUP_S_voltage_scheduler /etc/init.d/S_volt_scheduler");
-					ui_print("Voltage stats restored\n");
-					ensure_path_unmounted("/sdcard");
+          if ( 0 == ensure_path_mounted("/sdcard") )
+          {          
+            __system("[ -f /sdcard/Glitch/BACKUP_S_voltage_scheduler ] && cp /sdcard/Glitch/BACKUP_S_voltage_scheduler /system/etc/init.d/S_volt_scheduler");
+            __system("[ -f /sdcard/Glitch/BACKUP_S91voltctrl ] && cp /sdcard/Glitch/BACKUP_S91voltctrl /system/etc/init.d/S91voltctrl");
+            ui_print("Voltage settings restored\n");
+            ensure_path_unmounted("/sdcard");
+          }
+          else
+          {
+            ui_print("Unable to mount /sdcard - nothing done!");
+          }
 				}				
 				break;
 			}
