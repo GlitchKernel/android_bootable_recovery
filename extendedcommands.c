@@ -1038,6 +1038,90 @@ void show_advanced_menu()
     }
 }
 
+char** get_available_governors()
+{
+  const char *filename = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors";
+  FILE* f;
+  struct stat st;
+  static char **result = NULL;
+  char* buf = NULL;
+  int pass;
+  int numgovs = 0;
+  
+  if ( result != NULL )
+  {
+    // we've already been here, so just return
+    return result;
+  }
+  
+  if ( stat( filename, &st ) < 0 )
+  {
+    LOGW("cannot stat scaling_available_governors");
+    goto out;
+  }
+  
+  f = fopen( filename, "r" );
+  
+  if ( f == NULL )
+  {
+    LOGW("cannot open scaling_available_governors");
+    goto out;
+  }
+  
+  buf = malloc( st.st_size + 1 );
+  
+  if ( buf == NULL )
+  {
+    LOGW( "cannot allocate memory for gov list file" );
+    goto out;
+  }
+  
+  if ( fread(buf, 1, st.st_size, f) != st.st_size )
+  {
+    LOGW("failed to read scaling_available_governors");
+    goto out;
+  }
+  
+  buffer[st.st_size] = 0;  
+  
+  for ( pass=0; pass < 2; ++pass )
+  {         
+      char* gov = strtok( buf, " \n\t" );
+      int idx = 0;
+      
+      while ( gov != NULL )
+      {
+         if ( pass == 0 )
+         {
+            ++numgovs;
+            gov = strtok( NULL, " \n\t" );
+            continue;
+         }         
+         
+         if ( result == NULL )
+         {
+            result = (char**) malloc( sizeof(char*) * (numgovs+1) );
+            if ( result == NULL )
+            {
+              LOGW( "failed to allocate governor list" );
+              goto out;
+            }
+         }
+         
+         result[idx++] = strdup(gov);
+         result[idx]   = NULL;
+         
+         gov = strtok( NULL, " \n\t" );
+      }  
+  }
+  
+  out:
+  if ( f ) fclose(f);
+  if ( buf ) free(buf);
+  
+  return result;  
+}
+
 void show_sleep_gov_menu()
 {
     ensure_path_mounted("/system");
@@ -1048,13 +1132,21 @@ void show_sleep_gov_menu()
 								NULL
     };
 
-    static char* list[] = { "conservative",
+/*    static char* list[] = { "conservative",
     			    "smartass",
     			    "powersave",
     			    "lazy",
 			    NULL
-    };
+    };*/
+    
+    static char** list = NULL;
+    
+    if ( list == NULL )
+      list = get_available_governors();
 
+    if ( list == NULL )
+      return;
+    
     for (;;)
     {
 	int chosen_item = get_menu_selection(headers, list, 0, 0);
