@@ -1061,7 +1061,7 @@ char** get_available_governors()
   
   if ( stat( tmpfilename, &st ) < 0 )
   {
-    ui_print("cannot stat scaling_available_governors");
+    ui_print("cannot stat /tmp/governors");
     goto out;
   }
   
@@ -1069,7 +1069,7 @@ char** get_available_governors()
   
   if ( f == NULL )
   {
-    ui_print("cannot open scaling_available_governors");
+    ui_print("cannot open /tmp/governors");
     goto out;
   }
   
@@ -1116,7 +1116,16 @@ char** get_available_governors()
          result[idx++] = strdup(gov);
          result[idx]   = NULL;
          
-         gov = strtok( NULL, " \n\t" );
+         //gov = strtok( NULL, " \n\t\0" );
+         if ( numgovs < 0 )
+         {
+            gov += strlen(gov) + 1;
+            --numgovs;
+         }
+         else
+         {
+            gov = NULL;
+         }
       }  
   }
   
