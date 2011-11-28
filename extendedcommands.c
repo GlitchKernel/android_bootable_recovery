@@ -1082,7 +1082,7 @@ char** get_available_governors()
     goto out;
   }
   
-  buffer[st.st_size] = 0;  
+  buf[st.st_size] = 0;  
   
   for ( pass=0; pass < 2; ++pass )
   {         
