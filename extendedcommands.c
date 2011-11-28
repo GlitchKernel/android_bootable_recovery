@@ -1111,15 +1111,19 @@ char** get_available_governors()
               ui_print( "failed to allocate governor list" );
               goto out;
             }
+            else
+            {
+              ui_print( "allocated memory for list of %d govs", numgovs );
+            }            
          }
          
          result[idx++] = strdup(gov);
          result[idx]   = NULL;
          
          //gov = strtok( NULL, " \n\t\0" );
-         if ( numgovs < 0 )
+         if ( numgovs > 0 )
          {
-            gov += strlen(gov) + 1;
+            gov += strlen(gov) + 2;
             --numgovs;
          }
          else
