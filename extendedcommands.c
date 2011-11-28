@@ -1056,7 +1056,7 @@ char** get_available_governors()
   
   if ( stat( filename, &st ) < 0 )
   {
-    LOGW("cannot stat scaling_available_governors");
+    ui_print("cannot stat scaling_available_governors");
     goto out;
   }
   
@@ -1064,7 +1064,7 @@ char** get_available_governors()
   
   if ( f == NULL )
   {
-    LOGW("cannot open scaling_available_governors");
+    ui_print("cannot open scaling_available_governors");
     goto out;
   }
   
@@ -1072,13 +1072,13 @@ char** get_available_governors()
   
   if ( buf == NULL )
   {
-    LOGW( "cannot allocate memory for gov list file" );
+    ui_print( "cannot allocate memory for gov list file" );
     goto out;
   }
   
   if ( fread(buf, 1, st.st_size, f) != st.st_size )
   {
-    LOGW("failed to read scaling_available_governors");
+    ui_print("failed to read scaling_available_governors");
     goto out;
   }
   
@@ -1103,7 +1103,7 @@ char** get_available_governors()
             result = (char**) malloc( sizeof(char*) * (numgovs+1) );
             if ( result == NULL )
             {
-              LOGW( "failed to allocate governor list" );
+              ui_print( "failed to allocate governor list" );
               goto out;
             }
          }
