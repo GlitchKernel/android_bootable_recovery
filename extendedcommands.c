@@ -1121,10 +1121,9 @@ char** get_available_governors()
          result[idx]   = NULL;
          
          //gov = strtok( NULL, " \n\t\0" );
-         if ( numgovs > 0 )
+         if ( --numgovs > 0 )
          {
-            gov += strlen(gov) + 2;
-            --numgovs;
+            gov += strlen(gov) + 1;            
          }
          else
          {
