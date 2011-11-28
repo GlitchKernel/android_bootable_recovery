@@ -1040,7 +1040,6 @@ void show_advanced_menu()
 
 char** get_available_governors()
 {
-  //const char *sysfsfilename = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors";
   const char *tmpfilename   = "/tmp/governors";
   FILE* f = NULL;
   struct stat st;
@@ -1056,12 +1055,16 @@ char** get_available_governors()
     return result;
   }
   
-  /* sysfs files don't like stat - at least not the way we'd expect */
+  /* sysfs files don't like stat - at least not the way we'd expect.
+  ** stat returns 4096 (PAGESIZE) bytes for all of them, even tho they're
+  ** usually a lot shorter. This screws up our read later on.
+  ** So, to get around that, cat the thing and stash it in /tmp.
+  */
   __system( "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors > /tmp/governors" );
   
   if ( stat( tmpfilename, &st ) < 0 )
   {
-    ui_print("cannot stat /tmp/governors");
+    ui_print("cannot stat /tmp/governors\n");
     goto out;
   }
   
@@ -1069,7 +1072,7 @@ char** get_available_governors()
   
   if ( f == NULL )
   {
-    ui_print("cannot open /tmp/governors");
+    ui_print("cannot open /tmp/governors\n");
     goto out;
   }
   
@@ -1077,13 +1080,13 @@ char** get_available_governors()
   
   if ( buf == NULL )
   {
-    ui_print( "cannot allocate memory for gov list file" );
+    ui_print( "cannot allocate memory for gov list file\n" );
     goto out;
   }
   
   if ( ( bytesread = fread(buf, 1, st.st_size, f)) != st.st_size )
   {
-    ui_print("failed to read %d from scaling_available_governors, got %d instead", st.st_size, bytesread);
+    ui_print("failed to read %d from scaling_available_governors, got %d instead\n", st.st_size, bytesread);
     goto out;
   }
   
@@ -1108,19 +1111,14 @@ char** get_available_governors()
             result = (char**) malloc( sizeof(char*) * (numgovs+1) );
             if ( result == NULL )
             {
-              ui_print( "failed to allocate governor list" );
+              ui_print( "failed to allocate governor list\n" );
               goto out;
-            }
-            else
-            {
-              ui_print( "allocated memory for list of %d govs", numgovs );
-            }            
+            }                       
          }
          
          result[idx++] = strdup(gov);
          result[idx]   = NULL;
-         
-         //gov = strtok( NULL, " \n\t\0" );
+                  
          if ( --numgovs > 0 )
          {
             gov += strlen(gov) + 1;            
@@ -1149,13 +1147,6 @@ void show_sleep_gov_menu()
 								"",
 								NULL
     };
-
-/*    static char* list[] = { "conservative",
-    			    "smartass",
-    			    "powersave",
-    			    "lazy",
-			    NULL
-    };*/
     
     static char** list = NULL;
     
