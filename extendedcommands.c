@@ -1047,6 +1047,7 @@ char** get_available_governors()
   char* buf = NULL;
   int pass;
   int numgovs = 0;
+  int bytesread = 0;
   
   if ( result != NULL )
   {
@@ -1076,9 +1077,9 @@ char** get_available_governors()
     goto out;
   }
   
-  if ( fread(buf, 1, st.st_size, f) != st.st_size )
+  if ( ( bytesread = fread(buf, 1, st.st_size, f)) != st.st_size )
   {
-    ui_print("failed to read scaling_available_governors");
+    ui_print("failed to read %d from scaling_available_governors, got %d instead", st.st_size, bytesread);
     goto out;
   }
   
