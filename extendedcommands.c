@@ -1040,8 +1040,9 @@ void show_advanced_menu()
 
 char** get_available_governors()
 {
-  const char *filename = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors";
-  FILE* f;
+  //const char *sysfsfilename = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors";
+  const char *tmpfilename   = "/tmp/governors";
+  FILE* f = NULL;
   struct stat st;
   static char **result = NULL;
   char* buf = NULL;
@@ -1055,13 +1056,16 @@ char** get_available_governors()
     return result;
   }
   
-  if ( stat( filename, &st ) < 0 )
+  /* sysfs files don't like stat - at least not the way we'd expect */
+  __system( "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors > /tmp/governors" );
+  
+  if ( stat( tmpfilename, &st ) < 0 )
   {
     ui_print("cannot stat scaling_available_governors");
     goto out;
   }
   
-  f = fopen( filename, "r" );
+  f = fopen( tmpfilename, "r" );
   
   if ( f == NULL )
   {
@@ -1119,6 +1123,7 @@ char** get_available_governors()
   out:
   if ( f ) fclose(f);
   if ( buf ) free(buf);
+  __system( "rm -f /tmp/governors" );
   
   return result;  
 }
