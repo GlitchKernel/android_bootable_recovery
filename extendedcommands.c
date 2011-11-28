@@ -1038,6 +1038,106 @@ void show_advanced_menu()
     }
 }
 
+char** get_available_governors()
+{
+  const char *tmpfilename   = "/tmp/governors";
+  FILE* f = NULL;
+  struct stat st;
+  static char **result = NULL;
+  char* buf = NULL;
+  int pass;
+  int numgovs = 0;
+  int bytesread = 0;
+  
+  if ( result != NULL )
+  {
+    // we've already been here, so just return
+    return result;
+  }
+  
+  /* sysfs files don't like stat - at least not the way we'd expect.
+  ** stat returns 4096 (PAGESIZE) bytes for all of them, even tho they're
+  ** usually a lot shorter. This screws up our read later on.
+  ** So, to get around that, cat the thing and stash it in /tmp.
+  */
+  __system( "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors > /tmp/governors" );
+  
+  if ( stat( tmpfilename, &st ) < 0 )
+  {
+    ui_print("cannot stat /tmp/governors\n");
+    goto out;
+  }
+  
+  f = fopen( tmpfilename, "r" );
+  
+  if ( f == NULL )
+  {
+    ui_print("cannot open /tmp/governors\n");
+    goto out;
+  }
+  
+  buf = malloc( st.st_size + 1 );
+  
+  if ( buf == NULL )
+  {
+    ui_print( "cannot allocate memory for gov list file\n" );
+    goto out;
+  }
+  
+  if ( ( bytesread = fread(buf, 1, st.st_size, f)) != st.st_size )
+  {
+    ui_print("failed to read %d from scaling_available_governors, got %d instead\n", st.st_size, bytesread);
+    goto out;
+  }
+  
+  buf[st.st_size] = 0;  
+  
+  for ( pass=0; pass < 2; ++pass )
+  {         
+      char* gov = strtok( buf, " \n\t" );
+      int idx = 0;
+      
+      while ( gov != NULL )
+      {
+         if ( pass == 0 )
+         {
+            ++numgovs;
+            gov = strtok( NULL, " \n\t" );
+            continue;
+         }         
+         
+         if ( result == NULL )
+         {
+            result = (char**) malloc( sizeof(char*) * (numgovs+1) );
+            if ( result == NULL )
+            {
+              ui_print( "failed to allocate governor list\n" );
+              goto out;
+            }                       
+         }
+         
+         result[idx++] = strdup(gov);
+         result[idx]   = NULL;
+                  
+         if ( --numgovs > 0 )
+         {
+            gov += strlen(gov) + 1;            
+         }
+         else
+         {
+            gov = NULL;
+         }
+      }  
+  }
+  
+  out:
+  if ( f ) fclose(f);
+  if ( buf ) free(buf);
+  __system( "rm -f /tmp/governors" );
+  
+  return result;  
+}
+
 void show_sleep_gov_menu()
 {
     ensure_path_mounted("/system");
@@ -1047,14 +1147,15 @@ void show_sleep_gov_menu()
 								"",
 								NULL
     };
+    
+    static char** list = NULL;
+    
+    if ( list == NULL )
+      list = get_available_governors();
 
-    static char* list[] = { "conservative",
-    			    "smartass",
-    			    "powersave",
-    			    "lazy",
-			    NULL
-    };
-
+    if ( list == NULL )
+      return;
+    
     for (;;)
     {
 	int chosen_item = get_menu_selection(headers, list, 0, 0);
