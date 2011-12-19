@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/reboot.h>
-#include <reboot/reboot.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
@@ -41,6 +40,8 @@
 #include "edify/expr.h"
 #include <libgen.h>
 #include "mtdutils/mtdutils.h"
+#include "bmlutils/bmlutils.h"
+#include "cutils/android_reboot.h"
 
 
 int signature_check_enabled = 1;
@@ -410,13 +411,30 @@ int confirm_selection(const char* title, const char* confirm)
         return 1;
 
     char* confirm_headers[]  = {  title, "  THIS CAN NOT BE UNDONE.", "", NULL };
-    char* items[] = { "No",
-                      confirm, //" Yes -- wipe partition",   // [1
-                      NULL };
-
-    int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
-    return chosen_item == 1;
-}
+	if (0 == stat("/sdcard/clockworkmod/.one_confirm", &info)) {
+		char* items[] = { "No",
+						confirm, //" Yes -- wipe partition",   // [1]
+						NULL };
+		int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
+		return chosen_item == 1;
+	}
+	else {
+		char* items[] = { "No",
+						"No",
+						"No",
+						"No",
+						"No",
+						"No",
+						"No",
+						confirm, //" Yes -- wipe partition",   // [7]
+						"No",
+						"No",
+						"No",
+						NULL };
+		int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
+		return chosen_item == 7;
+	}
+	}
 
 #define MKE2FS_BIN      "/sbin/mke2fs"
 #define TUNE2FS_BIN     "/sbin/tune2fs"
@@ -435,12 +453,27 @@ int format_device(const char *device, const char *path, const char *fs_type) {
         LOGE("unknown volume \"%s\"\n", path);
         return -1;
     }
+    if (strstr(path, "/data") == path && volume_for_path("/sdcard") == NULL && is_data_media()) {
+        return format_unknown_device(NULL, path, NULL);
+    }
     if (strcmp(fs_type, "ramdisk") == 0) {
         // you can't format the ramdisk.
         LOGE("can't format_volume \"%s\"", path);
         return -1;
     }
 
+    if (strcmp(fs_type, "rfs") == 0) {
+        if (ensure_path_unmounted(path) != 0) {
+            LOGE("format_volume failed to unmount \"%s\"\n", v->mount_point);
+            return -1;
+        }
+        if (0 != format_rfs_device(device, path)) {
+            LOGE("format_volume: format_rfs_device failed on %s\n", device);
+            return -1;
+        }
+        return 0;
+    }
+ 
     if (strcmp(v->mount_point, path) != 0) {
         return format_unknown_device(v->device, path, NULL);
     }
@@ -723,7 +756,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
     };
 
     char tmp[PATH_MAX];
-    sprintf(tmp, "%s/clockworkmod/backup", path);
+    sprintf(tmp, "%s/clockworkmod/backup/", path);
     char* file = choose_file_menu(tmp, NULL, advancedheaders);
     if (file == NULL)
         return;
@@ -795,7 +828,7 @@ void show_nandroid_menu()
                             NULL
     };
 
-    if (volume_for_path("/emmc") == NULL)
+    if (volume_for_path("/emmc") == NULL || volume_for_path("/sdcard") == NULL && is_data_media())
         list[3] = NULL;
 
     int chosen_item = get_menu_selection(headers, list, 0, 0);
@@ -892,7 +925,7 @@ void show_advanced_menu()
         {
             case 0:
             {
-                reboot_wrapper("recovery");
+                android_reboot(ANDROID_RB_RESTART2, 0, "recovery");
                 break;
             }
             case 1:
@@ -1036,372 +1069,6 @@ void show_advanced_menu()
             }
         }
     }
-}
-
-char** get_available_governors()
-{
-  const char *tmpfilename   = "/tmp/governors";
-  FILE* f = NULL;
-  struct stat st;
-  static char **result = NULL;
-  char* buf = NULL;
-  int pass;
-  int numgovs = 0;
-  int bytesread = 0;
-  
-  if ( result != NULL )
-  {
-    // we've already been here, so just return
-    return result;
-  }
-  
-  /* sysfs files don't like stat - at least not the way we'd expect.
-  ** stat returns 4096 (PAGESIZE) bytes for all of them, even tho they're
-  ** usually a lot shorter. This screws up our read later on.
-  ** So, to get around that, cat the thing and stash it in /tmp.
-  */
-  __system( "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors > /tmp/governors" );
-  
-  if ( stat( tmpfilename, &st ) < 0 )
-  {
-    ui_print("cannot stat /tmp/governors\n");
-    goto out;
-  }
-  
-  f = fopen( tmpfilename, "r" );
-  
-  if ( f == NULL )
-  {
-    ui_print("cannot open /tmp/governors\n");
-    goto out;
-  }
-  
-  buf = malloc( st.st_size + 1 );
-  
-  if ( buf == NULL )
-  {
-    ui_print( "cannot allocate memory for gov list file\n" );
-    goto out;
-  }
-  
-  if ( ( bytesread = fread(buf, 1, st.st_size, f)) != st.st_size )
-  {
-    ui_print("failed to read %d from scaling_available_governors, got %d instead\n", st.st_size, bytesread);
-    goto out;
-  }
-  
-  buf[st.st_size] = 0;  
-  
-  for ( pass=0; pass < 2; ++pass )
-  {         
-      char* gov = strtok( buf, " \n\t" );
-      int idx = 0;
-      
-      while ( gov != NULL )
-      {
-         if ( pass == 0 )
-         {
-            ++numgovs;
-            gov = strtok( NULL, " \n\t" );
-            continue;
-         }         
-         
-         if ( result == NULL )
-         {
-            result = (char**) malloc( sizeof(char*) * (numgovs+1) );
-            if ( result == NULL )
-            {
-              ui_print( "failed to allocate governor list\n" );
-              goto out;
-            }                       
-         }
-         
-         result[idx++] = strdup(gov);
-         result[idx]   = NULL;
-                  
-         if ( --numgovs > 0 )
-         {
-            gov += strlen(gov) + 1;            
-         }
-         else
-         {
-            gov = NULL;
-         }
-      }  
-  }
-  
-  out:
-  if ( f ) fclose(f);
-  if ( buf ) free(buf);
-  __system( "rm -f /tmp/governors" );
-  
-  return result;  
-}
-
-void show_sleep_gov_menu()
-{
-    ensure_path_mounted("/system");
-    ensure_path_mounted("/data");    
-
-    static char* headers[] = {  "GLITCH Kernel - Sleep governor menu",
-								"",
-								NULL
-    };
-    
-    static char** list = NULL;
-    
-    if ( list == NULL )
-      list = get_available_governors();
-
-    if ( list == NULL )
-      return;
-    
-    for (;;)
-    {
-	int chosen_item = get_menu_selection(headers, list, 0, 0);
-        if (chosen_item == GO_BACK)
-            break;
-
-
-	FILE *f = fopen( "/system/etc/glitch-config/sleep_governor", "w" );
-
-	if ( f == NULL )
-	{
-		LOGW("Unable to create sleep_governor");
-		break;
-	}
-
-	fwrite( list[chosen_item], strlen(list[chosen_item]), 1, f );
-
-	fclose(f);
-
-	ui_print("Sleep Governor set to %s\n", list[chosen_item]);
-    }
-}
-
-void show_leakage_menu()
-{
-    ensure_path_mounted("/system");
-    ensure_path_mounted("/data");    
-
-    static char* headers[] = {  "GLITCH Kernel - Leakage menu",
-								"",
-								NULL
-    };
-
-    static char* list[] = { "low",
-    			    "medium",
-    			    "high",
-			    NULL
-    };
-
-    for (;;)
-    {
-	int chosen_item = get_menu_selection(headers, list, 0, 0);
-        if (chosen_item == GO_BACK)
-            break;
-
-
-	FILE *f = fopen( "/system/etc/glitch-config/leakage", "w" );
-
-	if ( f == NULL )
-	{
-		LOGW("Unable to create leakage");
-		break;
-	}
-
-	fwrite( list[chosen_item], strlen(list[chosen_item]), 1, f );
-
-	fclose(f);
-
-	ui_print("Leakage set to %s\n", list[chosen_item]);
-    }
-}
-
-void show_screenstate_menu()
-{
-
-    ensure_path_mounted("/system");
-    ensure_path_mounted("/data");    
-
-    static char* headers[] = {  "GLITCH Kernel - Screenstate menu",
-								"",
-								NULL
-    };
-
-    static char* list[] = { "Enable",
-    			    "Disable",
-                            "Set Sleep Governor",
-			    NULL
-    };
-
-    for (;;)
-    {
-	int chosen_item = get_menu_selection(headers, list, 0, 0);
-        if (chosen_item == GO_BACK)
-            break;
-
-	switch (chosen_item)
-        {
-	    case 0:
-	    {
-		__system("echo active > /system/etc/glitch-config/screenstate_scaling");
-		ui_print("Screenstate scaling ACTIVE\n");
-		break;
-	    }
-
-	    case 1:
-	    {
-	    	__system("echo inactive > /system/etc/glitch-config/screenstate_scaling");
-		ui_print("Screenstate scaling INACTIVE\n");
-	        break;
-	    }
-
-	    case 2:
-	    {
-	    	show_sleep_gov_menu();
-
-		break;
-	    }	    
-        }
-    }    
-}
-
-void show_glitch_menu()
-{
-    ensure_path_mounted("/system");
-    ensure_path_mounted("/data");    
-    
-
-    static char* headers[] = {  "GLITCH Kernel - Extras Menu",
-								"",
-								NULL
-    };
-
-    static char* list[] = { "Toggle Logcat",
-							"Clean kernel files",
-							"Configure screenstate scaling",
-							"Remove  Voltage Settings",
-							"Backup  Voltage Settings",
-							"Restore Voltage Settings",
-							"Configure Leakage Settings",
-    						NULL
-    };
-
-    for (;;)
-    {
-		int chosen_item = get_menu_selection(headers, list, 0, 0);
-        if (chosen_item == GO_BACK)
-            break;
-		switch (chosen_item)
-        {
-		    case 0:
-		    {
-				struct stat info;
-    			if (stat("/data/local/logger.ko", &info) != 0) {
-				    __system("cp /system/lib/modules/logger.ko /data/local/logger.ko");
-				    ui_print("Logcat Enabled\n");		    
-    			}
-    			else {
-				    remove("/data/local/logger.ko");
-				    ui_print("Logcat Disabled\n");		    
-    			}
-			break;
-	    	}
-			case 1:
-			{
-				if (!confirm_selection( "Confirm kernel cleaning?", "Yes - Clean Kernel Files")) {break;}
-				ui_print(" 						  ");
-				ui_print("Cleaning scripts, OC settings and old modules...");
-				remove("/system/etc/init.d/04modules");
-				remove("/system/etc/init.d/91logger");
-				remove("/system/etc/init.d/logcat_module");
-				remove("/system/etc/init.d/S97ramscript");
-				remove("/system/etc/init.d/S_volt_scheduler");
-				remove("/system/etc/init.d/S70zipalign");
-				remove("/system/etc/init.d/S90scheduler");
-				remove("/system/etc/init.d/S99finish");
-				remove("/system/etc/init.d/89system_tweak");
-				remove("/system/etc/init.d/98system_tweak");
-				remove("/system/etc/init.d/S89system_tweak");
-				remove("/system/etc/init.d/S98system_tweak");
-				remove("/system/etc/init.d/S90screenstate_scaling");
-				remove("/system/etc/init.d/90screenstate_scaling");
-				remove("/system/etc/init.d/98screenstate_scaling");
-				remove("/system/etc/init.d/S98screenstate_scaling");
-				remove("/system/etc/init.d/S99screenstate_scaling");
-				__system("rm /system/lib/modules/*");
-				__system("rm /data/local/logger.ko");
-				ui_print("		                                  ");
-				ui_print("Cleaning cache partition...			  ");
-				format_volume("/cache"); //Can cause problems. should use erase_volume from recovery.c
-				ui_print("		                                  ");
-				ui_print("Cleaning dalvik-cache...		      	  ");
-				ensure_path_mounted("/sd-ext");
-                ensure_path_mounted("/cache");				
-				__system("rm -r /data/dalvik-cache");
-                __system("rm -r /cache/dalvik-cache");
-                __system("rm -r /sd-ext/dalvik-cache");
-				ui_print("		                                  ");
-				ui_print("Done cleaning kernel files");
-				ui_print("Note: You must flash a kernel now! (but now safely this time)");
-			}
-			case 2:
-			{
-				show_screenstate_menu();
-				break;
-			}
-			case 3:
-	    	{
-				remove("/etc/init.d/S_volt_scheduler");		
-				remove("/etc/init.d/S91voltctrl");
-				ui_print("Voltage stats removed\n");
-				break;
-	    	}
-			case 4:
-			{
-        if ( 0 == ensure_path_mounted("/sdcard") )
-        {
-          __system("mkdir /sdcard/Glitch");
-          __system("[ -f /system/etc/init.d/S_volt_scheduler ] && cp /system/etc/init.d/S_volt_schedluer /sdcard/Glitch/BACKUP_S_voltage_scheduler");
-          __system("[ -f /system/etc/init.d/S91voltctrl ] && cp /system/etc/init.d/S91voltctrl /sdcard/Glitch/BACKUP_S91voltctrl");
-          ui_print("Voltage settings backed up (to /sdcard/Glitch/\n");
-          ensure_path_unmounted("/sdcard");
-        }
-        else
-        {
-          ui_print("Unable to mount /sdcard - nothing done!");
-        }
-				break;
-			}
-			case 5:
-			{
-				if (confirm_selection( "Confirm Restore?", "Yes - Clean Restore Voltage Stats (May cause problems)"))
-				{
-          if ( 0 == ensure_path_mounted("/sdcard") )
-          {          
-            __system("[ -f /sdcard/Glitch/BACKUP_S_voltage_scheduler ] && cp /sdcard/Glitch/BACKUP_S_voltage_scheduler /system/etc/init.d/S_volt_scheduler");
-            __system("[ -f /sdcard/Glitch/BACKUP_S91voltctrl ] && cp /sdcard/Glitch/BACKUP_S91voltctrl /system/etc/init.d/S91voltctrl");
-            ui_print("Voltage settings restored\n");
-            ensure_path_unmounted("/sdcard");
-          }
-          else
-          {
-            ui_print("Unable to mount /sdcard - nothing done!");
-          }
-				}				
-				break;
-			}
-			
-			case 6:
-			{
-        show_leakage_menu();
-			}
-			break;
-        }
-    }
-    //ensure_path_unmounted("/system");
-    //ensure_path_unmounted("/data");    
 }
 
 void write_fstab_root(char *path, FILE *file)
