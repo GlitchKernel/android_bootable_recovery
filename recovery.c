@@ -739,6 +739,10 @@ prompt_and_wait() {
             case ITEM_ADVANCED:
                 show_advanced_menu();
                 break;
+
+            case ITEM_GLITCH:
+                show_glitch_menu();
+                break;
                 
             case ITEM_POWEROFF:
                 poweroff = 1;
@@ -801,7 +805,7 @@ main(int argc, char **argv) {
     device_ui_init(&ui_parameters);
     ui_init();
     ui_print("\n\nGlitch Kernel - "EXPAND(RECOVERY_VERSION)"\n");
-	ui_print("Recovery mods by Smasher816\n\n");
+	ui_print("Recovery mods by the Glitch Team\n\n");
     load_volume_table();
     process_volumes();
     LOGI("Processing arguments.\n");

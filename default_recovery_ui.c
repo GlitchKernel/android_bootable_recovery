@@ -25,10 +25,11 @@ char* MENU_HEADERS[] = { NULL };
 char* MENU_ITEMS[] = { "reboot system now",
                        "install zip from sdcard",
                        "wipe data/factory reset",
-                       "wipe cache partition",
+                       "wipe cache and dalvik cache",
                        "backup and restore",
                        "mounts and storage",
                        "advanced",
+		       "GLITCH",
                        NULL };
 
 void device_ui_init(UIParameters* ui_parameters) {
