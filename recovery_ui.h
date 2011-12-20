@@ -82,7 +82,7 @@ int device_wipe_data();
 #define ITEM_NANDROID        4
 #define ITEM_PARTITION       5
 #define ITEM_ADVANCED        6
-#define ITEM_GLITCH	     7
+#define ITEM_GLITCH	     	 7
 #define ITEM_POWEROFF        8
 
 // Header text to display above the main menu.

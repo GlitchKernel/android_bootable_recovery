@@ -222,16 +222,17 @@ static void draw_screen_locked(void)
     draw_progress_locked();
 
     if (show_text) {
-        gr_color(0, 0, 0, 40);
+        gr_color(0, 0, 0, 0); //No more bg fade	//160
         gr_fill(0, 0, gr_fb_width(), gr_fb_height());
 
         int i = 0;
         int j = 0;
         int row = 0;            // current row that we are drawing on
         if (show_menu) {
-//            gr_color(MENU_TEXT_COLOR);
+			//Remove red highlight on selected
+            /*gr_color(MENU_TEXT_COLOR);
             gr_fill(0, (menu_top + menu_sel - menu_show_start) * CHAR_HEIGHT,
-                    gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*CHAR_HEIGHT+1);
+                    gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*CHAR_HEIGHT+1);*/
 
             gr_color(HEADER_TEXT_COLOR);
             for (i = 0; i < menu_top; ++i) {

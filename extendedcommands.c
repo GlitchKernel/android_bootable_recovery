@@ -357,7 +357,7 @@ void show_nandroid_restore_menu(const char* path)
 }
 
 #ifndef BOARD_UMS_LUNFILE
-#define BOARD_UMS_LUNFILE	"/sys/class/android_usb/android0/f_mass_storage/lun/file"
+#define BOARD_UMS_LUNFILE	"/sys/devices/platform/usb_mass_storage/lun0/file"
 #endif
 
 void show_mount_usb_storage_menu()
@@ -411,21 +411,30 @@ int confirm_selection(const char* title, const char* confirm)
         return 1;
 
     char* confirm_headers[]  = {  title, "  THIS CAN NOT BE UNDONE.", "", NULL };
-//	if (0 == stat("/sdcard/clockworkmod/.one_confirm", &info)) {
+	if (0 != stat("/sdcard/clockworkmod/.one_confirm", &info)) { //==, default to only 1.
 		char* items[] = { "No",
-						confirm, //" Yes -- wipe partition",   // [1]
+						confirm, //" Yes -- wipe partition",   // [1]						
 						NULL };
 		int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
 		return chosen_item == 1;
 	}
-//	else {
-//		char* items[] = { "No",
-//						confirm, //" Yes -- wipe partition",   // [7]
-//						NULL };
-//		int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
-//		return chosen_item == 7;
-//	}
-//	}
+	else {
+		char* items[] = { "No",
+						"No",
+						"No",
+						"No",
+						"No",
+						"No",
+						"No",
+						confirm, //" Yes -- wipe partition",   // [7]
+						"No",
+						"No",
+						"No",
+						NULL };
+		int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
+		return chosen_item == 7;
+	}
+	}
 
 #define MKE2FS_BIN      "/sbin/mke2fs"
 #define TUNE2FS_BIN     "/sbin/tune2fs"
