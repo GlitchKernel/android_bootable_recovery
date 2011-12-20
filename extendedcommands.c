@@ -1210,6 +1210,8 @@ void show_leakage_menu()
 
     static char* headers[] = {  "GLITCH Kernel - Leakage menu",
 								"",
+				"--Default is medium--",
+								"",
 								NULL
     };
 
