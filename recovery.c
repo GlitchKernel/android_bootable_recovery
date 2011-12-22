@@ -715,11 +715,21 @@ prompt_and_wait() {
                 break;
 
             case ITEM_WIPE_CACHE:
-                if (confirm_selection("Confirm wipe?", "Yes - Wipe Cache"))
+                if (confirm_selection("Confirm wipe?", "Yes - Wipe Cache and Dalvik"))
                 {
-                    ui_print("\n-- Wiping cache...\n");
+                    ui_print("\n-- Wiping cache and dalvik cache...\n");
                     erase_volume("/cache");
-                    ui_print("Cache wipe complete.\n");
+
+					if (0 != ensure_path_mounted("/data"))
+                    	break;
+                	ensure_path_mounted("/sd-ext");
+                	ensure_path_mounted("/cache");
+                	    __system("rm -r /data/dalvik-cache");
+                	    __system("rm -r /cache/dalvik-cache");
+                	    __system("rm -r /sd-ext/dalvik-cache");
+                	ensure_path_unmounted("/data");
+                	ui_print("Dalvik Cache wipe complete.\n");
+
                     if (!ui_text_visible()) return;
                 }
                 break;
