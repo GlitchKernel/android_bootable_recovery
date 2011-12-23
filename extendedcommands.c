@@ -1314,12 +1314,13 @@ void show_glitch_menu()
     };
 
     static char* list[] = { "Toggle Logcat",
-							"Clean kernel files",
 							"Configure screenstate scaling",
+							"Configure Leakage Settings",
+							"Clean kernel files",
+							"Remove NSTools Settings",
 							"Remove  Voltage Settings",
 							"Backup  Voltage Settings",
 							"Restore Voltage Settings",
-							"Configure Leakage Settings",
     						NULL
     };
 
@@ -1336,14 +1337,23 @@ void show_glitch_menu()
     			if (stat("/data/local/logger.ko", &info) != 0) {
 				    __system("cp /system/lib/modules/logger.ko /data/local/logger.ko");
 				    ui_print("Logcat Enabled\n");		    
-    			}
-    			else {
+    			} else {
 				    remove("/data/local/logger.ko");
 				    ui_print("Logcat Disabled\n");		    
     			}
-			break;
+				break;
 	    	}
-			case 1:
+	    	case 1:
+			{
+				show_screenstate_menu();
+				break;
+			}
+			case 2:
+			{
+        		show_leakage_menu();
+				break;
+			}
+			case 3:
 			{
 				if (!confirm_selection( "Confirm kernel cleaning?", "Yes - Clean Kernel Files")) {break;}
 				ui_print(" 						  ");
@@ -1380,59 +1390,49 @@ void show_glitch_menu()
 				ui_print("		                                  ");
 				ui_print("Done cleaning kernel files");
 				ui_print("Note: You must flash a kernel now! (but now safely this time)");
-			}
-			case 2:
-			{
-				show_screenstate_menu();
 				break;
 			}
 			case 3:
+			{
+				ensure_path_mounted("/datadata");
+				__system("rm /datadata/mobi.cyann.nstools/shared_prefs/mobi.cyann.nstools_preferences.xml");
+				ensure_path_unmounted("/datadata");
+				break;
+			}
+			case 4:
 	    	{
 				remove("/etc/init.d/S_volt_scheduler");		
 				remove("/etc/init.d/S91voltctrl");
 				ui_print("Voltage stats removed\n");
 				break;
 	    	}
-			case 4:
-			{
-        if ( 0 == ensure_path_mounted("/sdcard") )
-        {
-          __system("mkdir /sdcard/Glitch");
-          __system("[ -f /system/etc/init.d/S_volt_scheduler ] && cp /system/etc/init.d/S_volt_schedluer /sdcard/Glitch/BACKUP_S_voltage_scheduler");
-          __system("[ -f /system/etc/init.d/S91voltctrl ] && cp /system/etc/init.d/S91voltctrl /sdcard/Glitch/BACKUP_S91voltctrl");
-          ui_print("Voltage settings backed up (to /sdcard/Glitch/\n");
-          ensure_path_unmounted("/sdcard");
-        }
-        else
-        {
-          ui_print("Unable to mount /sdcard - nothing done!");
-        }
-				break;
-			}
 			case 5:
 			{
-				if (confirm_selection( "Confirm Restore?", "Yes - Clean Restore Voltage Stats (May cause problems)"))
-				{
-          if ( 0 == ensure_path_mounted("/sdcard") )
-          {          
-            __system("[ -f /sdcard/Glitch/BACKUP_S_voltage_scheduler ] && cp /sdcard/Glitch/BACKUP_S_voltage_scheduler /system/etc/init.d/S_volt_scheduler");
-            __system("[ -f /sdcard/Glitch/BACKUP_S91voltctrl ] && cp /sdcard/Glitch/BACKUP_S91voltctrl /system/etc/init.d/S91voltctrl");
-            ui_print("Voltage settings restored\n");
-            ensure_path_unmounted("/sdcard");
-          }
-          else
-          {
-            ui_print("Unable to mount /sdcard - nothing done!");
-          }
+        		if ( 0 == ensure_path_mounted("/sdcard") ) {
+          			__system("mkdir /sdcard/Glitch");
+          			__system("[ -f /system/etc/init.d/S_volt_scheduler ] && cp /system/etc/init.d/S_volt_schedluer /sdcard/Glitch/BACKUP_S_voltage_scheduler");
+          			__system("[ -f /system/etc/init.d/S91voltctrl ] && cp /system/etc/init.d/S91voltctrl /sdcard/Glitch/BACKUP_S91voltctrl");
+          			ui_print("Voltage settings backed up (to /sdcard/Glitch/\n");
+          			ensure_path_unmounted("/sdcard");
+        		} else {
+          			ui_print("Unable to mount /sdcard - nothing done!");
+        		}
+				break;
+			}
+			case 6:
+			{
+				if (confirm_selection( "Confirm Restore?", "Yes - Clean Restore Voltage Stats (May cause problems)")) {
+          			if ( 0 == ensure_path_mounted("/sdcard") ) {          
+            			__system("[ -f /sdcard/Glitch/BACKUP_S_voltage_scheduler ] && cp /sdcard/Glitch/BACKUP_S_voltage_scheduler /system/etc/init.d/S_volt_scheduler");
+            			__system("[ -f /sdcard/Glitch/BACKUP_S91voltctrl ] && cp /sdcard/Glitch/BACKUP_S91voltctrl /system/etc/init.d/S91voltctrl");
+            			ui_print("Voltage settings restored\n");
+            			ensure_path_unmounted("/sdcard");
+          			} else {
+           	 			ui_print("Unable to mount /sdcard - nothing done!");
+          			}
 				}				
 				break;
 			}
-			
-			case 6:
-			{
-        show_leakage_menu();
-			}
-			break;
         }
     }
     //ensure_path_unmounted("/system");
