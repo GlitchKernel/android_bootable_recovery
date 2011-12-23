@@ -1350,7 +1350,6 @@ void show_glitch_menu()
 				ensure_path_mounted("/datadata");
 				__system("rm /datadata/mobi.cyann.nstools/shared_prefs/mobi.cyann.nstools_preferences.xml");
 				ensure_path_unmounted("/datadata");
-				ui_print("		                                  ");
 				ui_print("Done cleaning NSTools settings !");
 				break;
 			}
