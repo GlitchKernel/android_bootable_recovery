@@ -1289,7 +1289,7 @@ void show_voltage_menu()
 				ensure_path_mounted("/datadata");
 				__system("rm /datadata/mobi.cyann.nstools/shared_prefs/mobi.cyann.nstools_preferences.xml");
 				ensure_path_unmounted("/datadata");
-				ui_print("Done cleaning NSTools settings !");
+				ui_print("Done cleaning NSTools settings !\n");
 				break;
 			}
 			case 1:
@@ -1308,7 +1308,7 @@ void show_voltage_menu()
           			ui_print("Voltage settings backed up (to /sdcard/Glitch/\n");
           			ensure_path_unmounted("/sdcard");
         		} else {
-          			ui_print("Unable to mount /sdcard - nothing done!");
+          			ui_print("Unable to mount /sdcard - nothing done!\n");
         		}
 				break;
 			}
@@ -1321,7 +1321,7 @@ void show_voltage_menu()
             			ui_print("Voltage settings restored\n");
             			ensure_path_unmounted("/sdcard");
           			} else {
-           	 			ui_print("Unable to mount /sdcard - nothing done!");
+           	 			ui_print("Unable to mount /sdcard - nothing done!\n");
           			}
 				}				
 				break;
@@ -1352,11 +1352,13 @@ void show_storage_menu()
 		    case 0:
 			{
 				__system("setprop persist.sys.usb.config mtp,adb");
+				ui_print("USB storage mode set to MTP\n");
 				break;
 			}
 			case 1:
 			{
 				__system("setprop persist.sys.usb.config mass_storage,adb");
+				ui_print("USB storage mode set to mass_storage\n");
 				break;
 			}
 		}
@@ -1419,8 +1421,8 @@ void show_glitch_menu()
 			case 4:
 			{
 				if (!confirm_selection( "Confirm kernel cleaning?", "Yes - Clean Kernel Files")) {break;}
-				ui_print(" 						  ");
-				ui_print("Cleaning scripts, OC settings and old modules...");
+				ui_print("\n");
+				ui_print("Cleaning scripts, OC settings and old modules...\n");
 				remove("/system/etc/init.d/04modules");
 				remove("/system/etc/init.d/91logger");
 				remove("/system/etc/init.d/logcat_module");
@@ -1440,19 +1442,19 @@ void show_glitch_menu()
 				remove("/system/etc/init.d/S99screenstate_scaling");
 				__system("rm /system/lib/modules/*");
 				__system("rm /data/local/logger.ko");
-				ui_print("		                                  ");
-				ui_print("Cleaning cache partition...			  ");
+				ui_print("\n");
+				ui_print("Cleaning cache partition...\n");
 				format_volume("/cache"); //Can cause problems. should use erase_volume from recovery.c
-				ui_print("		                                  ");
-				ui_print("Cleaning dalvik-cache...		      	  ");
+				ui_print("\n");
+				ui_print("Cleaning dalvik-cache...\n");
 				ensure_path_mounted("/sd-ext");
                 ensure_path_mounted("/cache");				
 				__system("rm -r /data/dalvik-cache");
                 __system("rm -r /cache/dalvik-cache");
                 __system("rm -r /sd-ext/dalvik-cache");
-				ui_print("		                                  ");
-				ui_print("Done cleaning kernel files");
-				ui_print("Note: You must flash a kernel now! (but now safely this time)");
+				ui_print("\n");
+				ui_print("Done cleaning kernel files\n");
+				ui_print("Note: You must flash a kernel now! (but now safely this time)\n");
 				break;
 			}
         }
