@@ -1286,9 +1286,9 @@ void show_voltage_menu()
         {
 		    case 0:
 			{
-				ensure_path_mounted("/datadata");
-				__system("rm /datadata/mobi.cyann.nstools/shared_prefs/mobi.cyann.nstools_preferences.xml");
-				ensure_path_unmounted("/datadata");
+				ensure_path_mounted("/data/data"); //just /data? (which should be mounted anyway)
+				__system("rm /data/data/mobi.cyann.nstools/shared_prefs/mobi.cyann.nstools_preferences.xml");
+				ensure_path_unmounted("/data/data");
 				ui_print("Done cleaning NSTools settings !\n");
 				break;
 			}
