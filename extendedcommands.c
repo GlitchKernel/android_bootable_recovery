@@ -25,6 +25,7 @@
 #include "cutils/properties.h"
 #include "firmware.h"
 #include "install.h"
+#include "make_ext4fs.h"
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
 #include "roots.h"
@@ -411,9 +412,9 @@ int confirm_selection(const char* title, const char* confirm)
         return 1;
 
     char* confirm_headers[]  = {  title, "  THIS CAN NOT BE UNDONE.", "", NULL };
-	if (0 != stat("/sdcard/clockworkmod/.one_confirm", &info)) { //==, default to only 1.
+	if (0 == stat("/sdcard/clockworkmod/.one_confirm", &info)) {
 		char* items[] = { "No",
-						confirm, //" Yes -- wipe partition",   // [1]						
+						confirm, //" Yes -- wipe partition",   // [1]
 						NULL };
 		int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
 		return chosen_item == 1;
@@ -507,8 +508,13 @@ int format_device(const char *device, const char *path, const char *fs_type) {
     }
 
     if (strcmp(fs_type, "ext4") == 0) {
+        int length = 0;
+        if (strcmp(v->fs_type, "ext4") == 0) {
+            // Our desired filesystem matches the one in fstab, respect v->length
+            length = v->length;
+        }
         reset_ext4fs_info();
-        int result = make_ext4fs(device, NULL, NULL, 0, 0, 0);
+        int result = make_ext4fs(device, length);
         if (result != 0) {
             LOGE("format_volume: make_extf4fs failed on %s\n", device);
             return -1;
@@ -635,7 +641,7 @@ void show_partition_menu()
     string options[255];
 
     if(!device_volumes)
-		return;
+		    return;
 
 		mountable_volumes = 0;
 		formatable_volumes = 0;
@@ -644,25 +650,24 @@ void show_partition_menu()
 		format_menue = malloc(num_volumes * sizeof(FormatMenuEntry));
 
 		for (i = 0; i < num_volumes; ++i) {
-			Volume* v = &device_volumes[i];
-			if(strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) != 0 && strcmp("emmc", v->fs_type) != 0 && strcmp("bml", v->fs_type) != 0)
-			{
-				sprintf(&mount_menue[mountable_volumes].mount, "mount %s", v->mount_point);
-				sprintf(&mount_menue[mountable_volumes].unmount, "unmount %s", v->mount_point);
-				mount_menue[mountable_volumes].v = &device_volumes[i];
-				++mountable_volumes;
-				if (is_safe_to_format(v->mount_point)) {
-					sprintf(&format_menue[formatable_volumes].txt, "format %s", v->mount_point);
-					format_menue[formatable_volumes].v = &device_volumes[i];
-					++formatable_volumes;
-				}
-		    }
-		    else if (strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) == 0 && is_safe_to_format(v->mount_point))
-		    {
-				sprintf(&format_menue[formatable_volumes].txt, "format %s", v->mount_point);
-				format_menue[formatable_volumes].v = &device_volumes[i];
-				++formatable_volumes;
-			}
+  			Volume* v = &device_volumes[i];
+  			if(strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) != 0 && strcmp("emmc", v->fs_type) != 0 && strcmp("bml", v->fs_type) != 0) {
+    				sprintf(&mount_menue[mountable_volumes].mount, "mount %s", v->mount_point);
+    				sprintf(&mount_menue[mountable_volumes].unmount, "unmount %s", v->mount_point);
+    				mount_menue[mountable_volumes].v = &device_volumes[i];
+    				++mountable_volumes;
+    				if (is_safe_to_format(v->mount_point)) {
+      					sprintf(&format_menue[formatable_volumes].txt, "format %s", v->mount_point);
+      					format_menue[formatable_volumes].v = &device_volumes[i];
+      					++formatable_volumes;
+    				}
+  		  }
+  		  else if (strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) == 0 && is_safe_to_format(v->mount_point))
+  		  {
+    				sprintf(&format_menue[formatable_volumes].txt, "format %s", v->mount_point);
+    				format_menue[formatable_volumes].v = &device_volumes[i];
+    				++formatable_volumes;
+  			}
 		}
 
 
@@ -672,37 +677,39 @@ void show_partition_menu()
 
     for (;;)
     {
+    		for (i = 0; i < mountable_volumes; i++)
+    		{
+    			MountMenuEntry* e = &mount_menue[i];
+    			Volume* v = e->v;
+    			if(is_path_mounted(v->mount_point))
+    				options[i] = e->unmount;
+    			else
+    				options[i] = e->mount;
+    		}
 
-		for (i = 0; i < mountable_volumes; i++)
-		{
-			MountMenuEntry* e = &mount_menue[i];
-			Volume* v = e->v;
-			if(is_path_mounted(v->mount_point))
-				options[i] = e->unmount;
-			else
-				options[i] = e->mount;
-		}
+    		for (i = 0; i < formatable_volumes; i++)
+    		{
+    			FormatMenuEntry* e = &format_menue[i];
 
-		for (i = 0; i < formatable_volumes; i++)
-		{
-			FormatMenuEntry* e = &format_menue[i];
+    			options[mountable_volumes+i] = e->txt;
+    		}
 
-			options[mountable_volumes+i] = e->txt;
-		}
-
-        options[mountable_volumes+formatable_volumes] = "mount USB storage";
-        options[mountable_volumes+formatable_volumes + 1] = NULL;
+        if (!is_data_media()) {
+          options[mountable_volumes + formatable_volumes] = "mount USB storage";
+          options[mountable_volumes + formatable_volumes + 1] = NULL;
+        }
+        else {
+          options[mountable_volumes + formatable_volumes] = NULL;
+        }
 
         int chosen_item = get_menu_selection(headers, &options, 0, 0);
         if (chosen_item == GO_BACK)
             break;
-        if (chosen_item == (mountable_volumes+formatable_volumes))
-        {
+        if (chosen_item == (mountable_volumes+formatable_volumes)) {
             show_mount_usb_storage_menu();
         }
-        else if (chosen_item < mountable_volumes)
-        {
-			MountMenuEntry* e = &mount_menue[chosen_item];
+        else if (chosen_item < mountable_volumes) {
+			      MountMenuEntry* e = &mount_menue[chosen_item];
             Volume* v = e->v;
 
             if (is_path_mounted(v->mount_point))
@@ -736,7 +743,6 @@ void show_partition_menu()
 
     free(mount_menue);
     free(format_menue);
-
 }
 
 void show_nandroid_advanced_restore_menu(const char* path)
@@ -906,12 +912,10 @@ void show_advanced_menu()
                             "Report Error",
                             "Key Test",
                             "Show log",
-#ifndef BOARD_HAS_SMALL_RECOVERY
                             "Partition SD Card",
                             "Fix Permissions",
 #ifdef BOARD_HAS_SDCARD_INTERNAL
                             "Partition Internal SD Card",
-#endif
 #endif
                             NULL
     };
@@ -1271,9 +1275,9 @@ void show_voltage_menu()
     };
 
     static char* list[] = { "Remove NSTools Settings",
-							"Remove  Voltage Settings",
-							"Backup  Voltage Settings",
-							"Restore Voltage Settings",
+							"Remove non-NSTools Voltage Settings",
+							"Backup non-NSTools Voltage Settings",
+							"Restore non-NSTools Voltage Settings",
     						NULL
     };
 
@@ -1286,9 +1290,12 @@ void show_voltage_menu()
         {
 		    case 0:
 			{
-				ensure_path_mounted("/data/data"); //just /data? (which should be mounted anyway)
+				ensure_path_mounted("/data");
 				__system("rm /data/data/mobi.cyann.nstools/shared_prefs/mobi.cyann.nstools_preferences.xml");
-				ensure_path_unmounted("/data/data");
+				ensure_path_unmounted("/data");
+				ensure_path_mounted("/datadata");
+				__system("rm /datadata/mobi.cyann.nstools/shared_prefs/mobi.cyann.nstools_preferences.xml");
+				ensure_path_unmounted("/datadata");
 				ui_print("Done cleaning NSTools settings !\n");
 				break;
 			}
