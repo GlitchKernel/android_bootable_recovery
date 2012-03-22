@@ -87,7 +87,7 @@ LOCAL_MODULE_TAGS := eng
 ifeq ($(BOARD_CUSTOM_RECOVERY_KEYMAPPING),)
   LOCAL_SRC_FILES += default_recovery_keys.c
 else
-  LOCAL_SRC_FILES += default_recovery_keys.c
+  LOCAL_SRC_FILES += $(BOARD_CUSTOM_RECOVERY_KEYMAPPING)
 endif
 
 LOCAL_STATIC_LIBRARIES += libext4_utils libz
