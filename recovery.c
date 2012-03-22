@@ -408,7 +408,7 @@ copy_sideloaded_package(const char* original_path) {
 
 static char**
 prepend_title(char** headers) {
-    char* title[] = { "Glitch Kernel - "EXPAND(RECOVERY_VERSION),
+    char* title[] = { EXPAND(RECOVERY_VERSION),
                       "",
                       NULL };
 
@@ -499,14 +499,14 @@ get_menu_selection(char** headers, char** items, int menu_only,
             wrap_count++;
             if (wrap_count == 300) {
                 wrap_count = 0;
-                /*if (ui_get_showing_back_button()) {
+                if (ui_get_showing_back_button()) {
                     ui_print("Back menu button disabled.\n");
                     ui_set_showing_back_button(0);
                 }
                 else {
                     ui_print("Back menu button enabled.\n");
                     ui_set_showing_back_button(1);
-                }*/
+                }
             }
         }
     }
