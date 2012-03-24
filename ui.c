@@ -48,11 +48,11 @@ static int gShowBackButton = 0;
 #define MENU_MAX_ROWS 250
 
 //#if defined(BOARD_HDPI_RECOVERY)
-//  #define CHAR_WIDTH 15
-// #define CHAR_HEIGHT 36
+//  #define CHAR_WIDTH 10
+// #define CHAR_HEIGHT 18
 //#else
-#define CHAR_WIDTH 15
-#define CHAR_HEIGHT 36
+#define CHAR_WIDTH 10
+#define CHAR_HEIGHT 18
 //#endif
 
 
