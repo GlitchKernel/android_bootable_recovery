@@ -1,4 +1,4 @@
-/*k
+/*
  * Copyright (C) 2007 The Android Open Source Project
  * Copyright (c) 2010, Code Aurora Forum. All rights reserved.
  *

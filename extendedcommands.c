@@ -48,7 +48,6 @@
 int signature_check_enabled = 1;
 int script_assert_enabled = 1;
 static const char *SDCARD_UPDATE_FILE = "/sdcard/update.zip";
-static const char *EMMC_UPDATE_FILE = "/emmc/update.zip";
 
 void
 toggle_signature_check()
@@ -81,19 +80,17 @@ int install_zip(const char* packagefilepath)
     return 0;
 }
 
-char* INSTALL_MENU_ITEMS[] = {  "choose zip from internal sdcard",
-                                "choose zip from external sdcard",
-                                "apply /sdcard/update.zip (internal)",
-                                "apply /emmc/update.zip (external)",
+char* INSTALL_MENU_ITEMS[] = {  "choose zip from sdcard",
+                                "apply /sdcard/update.zip",
                                 "toggle signature verification",
                                 "toggle script asserts",
+                                "choose zip from internal sdcard",
                                 NULL };
 #define ITEM_CHOOSE_ZIP       0
-#define ITEM_CHOOSE_ZIP_INT   1
-#define ITEM_APPLY_SDCARD     2
-#define ITEM_APPLY_EMMC       3
-#define ITEM_SIG_CHECK        4
-#define ITEM_ASSERTS          5
+#define ITEM_APPLY_SDCARD     1
+#define ITEM_SIG_CHECK        2
+#define ITEM_ASSERTS          3
+#define ITEM_CHOOSE_ZIP_INT   4
 
 void show_install_update_menu()
 {
@@ -120,12 +117,6 @@ void show_install_update_menu()
             {
                 if (confirm_selection("Confirm install?", "Yes - Install /sdcard/update.zip"))
                     install_zip(SDCARD_UPDATE_FILE);
-                break;
-            }
-            case ITEM_APPLY_EMMC:
-            {
-                if (confirm_selection("Confirm install?", "Yes - Install /emmc/update.zip"))
-                    install_zip(EMMC_UPDATE_FILE);
                 break;
             }
             case ITEM_CHOOSE_ZIP:
@@ -414,49 +405,6 @@ void show_mount_usb_storage_menu()
     }
 }
 
-void show_mount_external_storage_menu()
-{
-    int fd;
-    Volume *vol = volume_for_path("/emmc");
-    if ((fd = open(BOARD_UMS_LUNFILE, O_WRONLY)) < 0) {
-        LOGE("Unable to open ums lunfile (%s)", strerror(errno));
-        return -1;
-    }
-
-    if ((write(fd, vol->device, strlen(vol->device)) < 0) &&
-        (!vol->device2 || (write(fd, vol->device, strlen(vol->device2)) < 0))) {
-        LOGE("Unable to write to ums lunfile (%s)", strerror(errno));
-        close(fd);
-        return -1;
-    }
-    static char* headers[] = {  "USB Mass Storage device",
-                                "Leaving this menu unmount",
-                                "your SD card from your PC.",
-                                "",
-                                NULL
-    };
-
-    static char* list[] = { "Unmount", NULL };
-
-    for (;;)
-    {
-        int chosen_item = get_menu_selection(headers, list, 0, 0);
-        if (chosen_item == GO_BACK || chosen_item == 0)
-            break;
-    }
-
-    if ((fd = open(BOARD_UMS_LUNFILE, O_WRONLY)) < 0) {
-        LOGE("Unable to open ums lunfile (%s)", strerror(errno));
-        return -1;
-    }
-
-    char ch = 0;
-    if (write(fd, &ch, 1) < 0) {
-        LOGE("Unable to write to ums lunfile (%s)", strerror(errno));
-        close(fd);
-        return -1;
-    }
-}
 int confirm_selection(const char* title, const char* confirm)
 {
     struct stat info;
@@ -658,8 +606,7 @@ int is_safe_to_format(char* name)
 {
     char str[255];
     char* partition;
-    //property_get("ro.cwm.forbid_format", str, "/misc,/radio,/bootloader,/recovery,/efs");
-    property_get("ro.cwm.forbid_format", str, "/radio,/bootloader,/recovery,/efs");
+    property_get("ro.cwm.forbid_format", str, "/misc,/radio,/bootloader,/recovery,/efs");
 
     partition = strtok(str, ", ");
     while (partition != NULL) {
@@ -761,9 +708,6 @@ void show_partition_menu()
         if (chosen_item == (mountable_volumes+formatable_volumes)) {
             show_mount_usb_storage_menu();
         }
-		else if (chosen_item == (mountable_volumes + formatable_volumes + 1)) {
-			show_mount_external_storage_menu();
-		}
         else if (chosen_item < mountable_volumes) {
 			      MountMenuEntry* e = &mount_menue[chosen_item];
             Volume* v = e->v;
@@ -881,9 +825,9 @@ void show_nandroid_menu()
                                 NULL
     };
 
-    static char* list[] = { "backup to external sdcard",
-                            "restore from external sdcard",
-                            "advanced restore from external sdcard",
+    static char* list[] = { "backup",
+                            "restore",
+                            "advanced restore",
                             "backup to internal sdcard",
                             "restore from internal sdcard",
                             "advanced restore from internal sdcard",
@@ -905,20 +849,20 @@ void show_nandroid_menu()
                 {
                     struct timeval tp;
                     gettimeofday(&tp, NULL);
-                    sprintf(backup_path, "/emmc/clockworkmod/backup/%d", tp.tv_sec);
+                    sprintf(backup_path, "/sdcard/clockworkmod/backup/%d", tp.tv_sec);
                 }
                 else
                 {
-                    strftime(backup_path, sizeof(backup_path), "/emmc/clockworkmod/backup/%F.%H.%M.%S", tmp);
+                    strftime(backup_path, sizeof(backup_path), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
                 }
                 nandroid_backup(backup_path);
             }
             break;
         case 1:
-            show_nandroid_restore_menu("/emmc");
+            show_nandroid_restore_menu("/sdcard");
             break;
         case 2:
-            show_nandroid_advanced_restore_menu("/emmc");
+            show_nandroid_advanced_restore_menu("/sdcard");
             break;
         case 3:
             {
@@ -929,20 +873,20 @@ void show_nandroid_menu()
                 {
                     struct timeval tp;
                     gettimeofday(&tp, NULL);
-                    sprintf(backup_path, "/sdcard/clockworkmod/backup/%d", tp.tv_sec);
+                    sprintf(backup_path, "/emmc/clockworkmod/backup/%d", tp.tv_sec);
                 }
                 else
                 {
-                    strftime(backup_path, sizeof(backup_path), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
+                    strftime(backup_path, sizeof(backup_path), "/emmc/clockworkmod/backup/%F.%H.%M.%S", tmp);
                 }
                 nandroid_backup(backup_path);
             }
             break;
         case 4:
-            show_nandroid_restore_menu("/sdcard");
+            show_nandroid_restore_menu("/emmc");
             break;
         case 5:
-            show_nandroid_advanced_restore_menu("/sdcard");
+            show_nandroid_advanced_restore_menu("/emmc");
             break;
     }
 }
@@ -963,14 +907,16 @@ void show_advanced_menu()
     };
 
     static char* list[] = { "Reboot Recovery",
-							"Wipe Dalvik Cache",
+                            "Wipe Dalvik Cache",
                             "Wipe Battery Stats",
                             "Report Error",
                             "Key Test",
                             "Show log",
-                            "Partition Internal SD Card",
-                            "Partition External SD Card",
+                            "Partition SD Card",
                             "Fix Permissions",
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+                            "Partition Internal SD Card",
+#endif
                             NULL
     };
 
@@ -1066,14 +1012,23 @@ void show_advanced_menu()
                 char cmd[PATH_MAX];
                 setenv("SDPATH", sddevice, 1);
                 sprintf(cmd, "sdparted -es %s -ss %s -efs ext3 -s", ext_sizes[ext_size], swap_sizes[swap_size]);
-                ui_print("Partitioning Internal SD Card... please wait...\n");
+                ui_print("Partitioning SD Card... please wait...\n");
                 if (0 == __system(cmd))
                     ui_print("Done!\n");
                 else
-                    ui_print("An error occured while partitioning your Internal SD Card. Please see /tmp/recovery.log for more details.\n");
+                    ui_print("An error occured while partitioning your SD Card. Please see /tmp/recovery.log for more details.\n");
                 break;
             }
             case 7:
+            {
+                ensure_path_mounted("/system");
+                ensure_path_mounted("/data");
+                ui_print("Fixing permissions...\n");
+                __system("fix_permissions");
+                ui_print("Done!\n");
+                break;
+            }
+            case 8:
             {
                 static char* ext_sizes[] = { "128M",
                                              "256M",
@@ -1097,13 +1052,9 @@ void show_advanced_menu()
                 if (ext_size == GO_BACK)
                     continue;
 
-                int swap_size = get_menu_selection(swap_headers, swap_sizes, 0, 0);
+                int swap_size = 0;
                 if (swap_size == GO_BACK)
                     continue;
-		//Added swap option back for comfort of rookies
-                //int swap_size = 0;
-                //if (swap_size == GO_BACK)
-                //    continue;
 
                 char sddevice[256];
                 Volume *vol = volume_for_path("/emmc");
@@ -1113,20 +1064,11 @@ void show_advanced_menu()
                 char cmd[PATH_MAX];
                 setenv("SDPATH", sddevice, 1);
                 sprintf(cmd, "sdparted -es %s -ss %s -efs ext3 -s", ext_sizes[ext_size], swap_sizes[swap_size]);
-                ui_print("Partitioning External SD Card... please wait...\n");
+                ui_print("Partitioning Internal SD Card... please wait...\n");
                 if (0 == __system(cmd))
                     ui_print("Done!\n");
                 else
-                    ui_print("An error occured while partitioning your External SD Card. Please see /tmp/recovery.log for more details.\n");
-                break;
-            }
-            case 8:
-            {
-                ensure_path_mounted("/system");
-                ensure_path_mounted("/data");
-                ui_print("Fixing permissions...\n");
-                __system("fix_permissions");
-                ui_print("Done!\n");
+                    ui_print("An error occured while partitioning your Internal SD Card. Please see /tmp/recovery.log for more details.\n");
                 break;
             }
         }
